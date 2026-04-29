@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.ipynb_checkpoints/
+
+# OS
+.DS_Store
+
+# Run artefacts
+OUTPUT/
+Checkpoints*/
+Experiments/pipeline_logs/
+Experiments/cond_report_*.md
+Experiments/cond_report_*.tex
+*.log
+*.out
+
+# Data (download via README link)
+Data/datasets/*.csv
+Data/datasets/fmri/*.mat
+
+# IDE
+.vscode/
+.idea/
+
+# Misc
+*.npy
