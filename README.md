@@ -1,4 +1,4 @@
-# StrideDiff: Frequency-Aware Variable-Stride Sampling for Time-Series Diffusion
+# StrideDiffusion: Accelerating Diffusion Models for Time-Series Generation
 
 <img src="https://img.shields.io/badge/python-3.9-blue">
 <img src="https://img.shields.io/badge/pytorch-2.0-orange">
