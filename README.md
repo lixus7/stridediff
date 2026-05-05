@@ -20,7 +20,7 @@ seasonal/trend decomposition backbone (see acknowledgements), so the same
 checkpoint can be reused across the DDPM / DDIM / banded sampling paths.
 
 <p align="center">
-  <img src="figures/stridediff_framework.pdf" alt="StrideDiff framework" width="85%">
+  <img src="figures/stridediff_framework.png" alt="StrideDiff framework" width="85%">
 </p>
 
 ---
