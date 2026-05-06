@@ -1,26 +1,31 @@
-# StrideDiffusion: Accelerating Diffusion Models for Time-Series Generation
+# StrideDiffusion: Frequency-Aware Variable-Stride Sampling for Time-Series Diffusion
 
 <img src="https://img.shields.io/badge/python-3.9-blue">
 <img src="https://img.shields.io/badge/pytorch-2.0-orange">
 
-StrideDiff accelerates diffusion-based time-series generation by replacing the
-fixed per-step DDPM update with a **frequency-aware variable-stride scheduler**.
+StrideDiffusion accelerates diffusion-based time-series generation by replacing
+the fixed per-step update with a **frequency-aware variable-stride scheduler**.
 At each timestep we read a band-activity signal off the rFFT of the current
-sample (energy, magnitude drift `|Δ log P|`, phase velocity), gate it with three
-thresholds (`tau_energy`, `tau_dlogP`, `tau_pv`), and dynamically pick the jump
-size:
+sample — relative band energy $\pi_t[B]$, log-power drift $\delta_t[B]$, and
+phase velocity $v_{\phi,t}[B]$ — gate it with three thresholds
+$\tau_{\mathrm{energy}}$, $\tau_{\mathrm{mag}}$, $\tau_{\mathrm{phase}}$ (CLI
+flags: `tau_energy`, `tau_dlogP`, `tau_pv`), and dynamically pick the jump
+size from three presets:
 
-* `big_k` — coarse stride when no bands are active,
-* `med_k` — medium stride when only low bands are active,
-* `small_k` — small stride when high bands are active or during the
-  `last_k_always_micro` final timesteps.
+* $l_{\mathrm{coarse}}$ (CLI `big_k`) — coarse stride when no bands are active,
+* $l_{\mathrm{mid}}$ (CLI `med_k`) — medium stride when only low bands are active,
+* $l_{\mathrm{fine}}$ (CLI `small_k`) — small stride when high bands are active or
+  during the final $K_{\mathrm{micro}}$ timesteps (CLI `last_k_always_micro`).
+
+Fine steps use deterministic DDIM and coarser strides use DPM-Solver-2 multistep;
+both fit the same single-step affine update analysed in the paper.
 
 The scheduler drops in on top of the Diffusion-TS interpretable transformer +
 seasonal/trend decomposition backbone (see acknowledgements), so the same
 checkpoint can be reused across the DDPM / DDIM / banded sampling paths.
 
 <p align="center">
-  <img src="figures/stridediff_framework.png" alt="StrideDiff framework" width="85%">
+  <img src="figures/stridediff_framework.png" alt="StrideDiffusion framework" width="85%">
 </p>
 
 ---
@@ -35,7 +40,7 @@ stridediff/
 │   ├── build_dataloader.py
 │   └── datasets/                    # drop the dataset.zip contents here
 ├── Models/
-│   ├── interpretable_diffusion/     # Diffusion-TS backbone + StrideDiff sampler
+│   ├── interpretable_diffusion/     # Diffusion-TS backbone + StrideDiffusion sampler
 │   │   ├── gaussian_diffusion.py    #   sample(...) / sample_infill_banded(...)
 │   │   ├── transformer.py
 │   │   └── model_utils.py
@@ -98,7 +103,7 @@ nohup python -u main.py --gpu 3 --name fmri   --config_file ./Config/fmri.yaml  
 
 ---
 
-## 2) Unconditional generation (StrideDiff sampler)
+## 2) Unconditional generation (StrideDiffusion sampler)
 
 Inference and metrics are fused: the same call generates samples with the
 band-stride scheduler and prints Context-FID / Discriminative / Predictive /
@@ -107,7 +112,11 @@ hyper-parameter sweeps.
 
 The per-dataset stride / threshold schedule that produced the reported numbers
 is below — pass them as flags or read them off
-`Experiments/run_cond_pipeline.py:BAND_HPARAMS`.
+`Experiments/run_cond_pipeline.py:BAND_HPARAMS`. Column names match the CLI
+flags; their paper-notation counterparts are
+`big_k`$\!=\!l_{\mathrm{coarse}}$, `med_k`$\!=\!l_{\mathrm{mid}}$,
+`small_k`$\!=\!l_{\mathrm{fine}}$, `last_k_always_micro`$\!=\!K_{\mathrm{micro}}$,
+`tau_dlogP`$\!=\!\tau_{\mathrm{mag}}$, `tau_pv`$\!=\!\tau_{\mathrm{phase}}$.
 
 | Dataset | `big_k` | `med_k` | `small_k` | `last_k_always_micro` | `tau_energy` | `tau_dlogP` | `tau_pv` |
 |---------|---------|---------|-----------|-----------------------|--------------|-------------|----------|
@@ -166,7 +175,7 @@ Three sampling paths are dispatched per task:
 
 * `ddpm`    — full-T DDPM (`sample_infill`),
 * `fast200` — 200-step DDIM (`fast_sample_infill`),
-* `banded`  — StrideDiff frequency-aware variable-stride sampler
+* `banded`  — StrideDiffusion frequency-aware variable-stride sampler
   (`sample_infill_banded`); per-dataset hparams come from `BAND_HPARAMS`.
 
 Default window length is **48** (matching the conditional table in the paper).
@@ -237,7 +246,7 @@ invocations), see `Experiments/PIPELINE_COND_README.md`.
 
 ## Acknowledgements
 
-StrideDiff builds on the
+StrideDiffusion builds on the
 [Diffusion-TS](https://openreview.net/forum?id=4h1apFjO99) backbone and reuses
 its dataset preparation, evaluation harness and tutorials. The conditional
 sampling paths inherit Diffusion-TS's `langevin_fn` observed-entry correction.
